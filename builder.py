@@ -1,13 +1,16 @@
 from argparse import ArgumentParser
 import os
+from typing import Container 
 import docker
 from docker.types import DeviceRequest
 
 
-description = "CLI Tool to interact with Hydrus Dockerfile."
+#description = "CLI Tool to interact with Hydrus Dockerfile."
+description = "Builder"
 
 
-NVIDIA_GPU = DeviceRequest(count=-1)
+
+NVIDIA_GPU = DeviceRequest(count=-1, capabilities=[['gpu']])
 
 
 #All argparse related stuff 
@@ -27,9 +30,8 @@ if __name__ == "__main__":
     parser = generate_parser()
     args = parser.parse_args()
     image = args.image
-    client = docker.from_env()
+    client = docker.from_env(version='auto')
 
-    
     if args.action == "build":
          client.containers.run(
                 image,
@@ -39,6 +41,7 @@ if __name__ == "__main__":
                         'mode':'rw'}},
                 command="mkdir build-debug && cd build-debug && cmake -DCMAKE_BUILD_TYPE=Debug ..",
                 device_requests=[NVIDIA_GPU],
+                stderr=True,
                 auto_remove=True)
     elif args.action == "interactive":
        client.containers.run(
@@ -50,11 +53,11 @@ if __name__ == "__main__":
                 command="/bin/bash",
                 tty=True,
                 device_requests=[NVIDIA_GPU],
+                stderr=True,
                 auto_remove=True) 
     elif args.action == "run":
         print('"RUN" currently not implemented. Switching to build')
     elif args.action == "pull":
-        image = client.images.pull("xv1r/hydrus-build-env")
-        print(f"Pulled {image.tags[0]}")
+        client.images.pull(image)
     else:
         print("Error: action not available.")
